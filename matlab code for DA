@@ -1,0 +1,117 @@
+clc
+clear all
+y=[7.18 % rainfall data
+0.275
+0.325
+1.28
+1.55
+3.01
+1.07
+3
+1.13
+4.43
+1.98
+1.53
+1.31
+0.53
+1.53
+2.13
+4.18
+5.08
+8.35
+3.34
+3.2
+3.11
+14.2
+1.88
+0.6
+2.66
+2.97
+5.23
+4
+9.21
+58.33
+7.45
+];
+Y=y.'; %to convert column vector to row vector
+t=datetime(2020,7,3)+caldays(0:31);
+figure(1);
+plot(t,Y,'linewidth',2);%plot of original continuous time rainfall data
+set(gca,'fontsize',13,'fontweight','bold');
+xlabel('Date','fontsize',12,'fontweight','bold');
+ylabel('Average Rainfall','fontsize',12,'fontweight','bold');
+title('Average Rainfall over a month','fontsize',15);
+grid on;
+ticks=linspace(datetime(2020,7,3),datetime(2020,8,3),32);
+xticks(ticks);
+xtickangle(90);
+xlim(datetime(2020,[7 8],[3 3]))
+xtickformat('dd-MMM')
+h=length(Y);
+figure(2);
+stem(Y,'linewidth',2);%plot of sampled signal using stem
+title('sampled signal');
+n1=3;%no of bits used in quantization
+L=2^n1; %no of levels
+xmax=max(Y); %overload
+xmin=min(Y); %minimum value
+del=(xmax-xmin)/L; %step size 
+partition=xmin:del:xmax;            % definition of decision lines
+codebook=xmin-(del/2):del:xmax+(del/2);    % definition of representation levels
+[index,quants]=quantiz(Y,partition,codebook); %quantization
+% gives rounded off values of the samples
+figure(3);
+hold on;
+stem(quants,'linewidth',2);
+title('Quantized Signal');
+xlabel('Time');
+ylabel('Amplitude');
+hold off;
+% NORMALIZATION
+l1=length(index);                 % to convert 1 to n as 0 to n-1 indicies
+for i=1:l1
+    if (index(i)~=0)
+        index(i)=index(i)-1;
+    end
+end
+l2=length(quants);
+for i=1:l2          %  to converet the end representation levels within the range.
+    if(quants(i)==xmin-(del/2))
+        quants(i)=xmin+(del/2);
+    end
+    if(quants(i)==xmax+(del/2))
+        quants(i)=xmax-(del/2);
+    end
+end
+%  ENCODING
+code=de2bi(index,'left-msb')    % DECIMAL TO BINANRY CONV OF INDICIES
+k=1;
+for i=1:l1                     % to convert column vector to row vector
+    for j=1:n1
+        coded(k)=code(i,j);
+        j=j+1;
+        k=k+1;
+    end
+    i=i+1;
+end
+figure(4);
+hold on;
+stairs(coded);
+axis([0 200 -2 2])
+%plot of digital signal
+title('Digital signal');
+xlabel('Time');
+ylabel('Amplitude');
+hold off;
+%  DEMODULATION
+code1=reshape(coded,n1,(length(coded)/n1));
+index1=bi2de(code1,'left-msb'); %conversion back from binary to decimal
+resignal=del*index+xmin+(del/2);
+figure(5);
+hold on;
+plot(resignal,'linewidth',2);
+title('Demodulated signal');
+xlabel('Time');
+ylabel('Amplitude');
+hold off;
+
